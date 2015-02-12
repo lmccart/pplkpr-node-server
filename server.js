@@ -7,13 +7,12 @@ var server = require('http').Server(app);
 var io = require('socket.io')(server);
 server.listen(app.get('port'));
 
-var socket;
 var hr = 0;
 
 
 io.on('connection', function (socket) {
-  socket = socket;
   console.log('socket connected');
+  io.emit('hr', 100);
 });
 
 // app.get('/', function (req, res) {
@@ -27,7 +26,7 @@ app.get('/update_hr', function (req, res) {
   console.log(req.query);
   hr = parseInt(req.query.hr, 10);
   console.log(hr);
-  if (socket) socket.broadcast.emit('hr', hr);
+  io.emit('hr', hr);
   res.send('thanks');
 })
 
