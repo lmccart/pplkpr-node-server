@@ -17,11 +17,8 @@ app.get('/update_hr', function (req, res) {
 app.use(express.static(__dirname + '/public'));
 
 
-var server = app.listen(3000, function () {
+app.set('port', process.env.PORT || 3000);
 
-  var host = server.address().address;
-  var port = server.address().port;
-
-  console.log('Example app listening at http://%s:%s', host, port);
-
-})
+var server = app.listen(app.get('port'), function () {
+  console.log('Example app listening at http://%s:%s', server.address().address, server.address().port);
+});
