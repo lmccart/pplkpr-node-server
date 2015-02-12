@@ -9,8 +9,9 @@ app.get('/', function (req, res) {
 
 
 app.get('/update_hr', function (req, res) {
-  hr = parseFloat(req.query.hr);
+  hr = parseInt(req.query.hr, 10);
   console.log(hr);
+  res.send('thanks');
 })
 
 
