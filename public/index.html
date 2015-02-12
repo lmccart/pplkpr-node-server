@@ -4,16 +4,18 @@
         <script data-main="app" src="lib/jquery.js"></script>
         <script src="/socket.io/socket.io.js"></script>
         <script>
-          var socket = io.connect('http://localhost:3000');
+          var socket = io.connect('https://followmyheart.herokuapp.com/');
           socket.on('hr', function (data) {
             console.log(data);
+            $('#hr').html(data.hr);
           });
         </script>
         <style> 
           body {padding:0; margin:0} 
+          #hr { font-size: 150px; text-align: center; width: 100%; margin-top:100px;}
         </style>
     </head>
     <body>
-    hello #followmyheartworld
+    <div id='hr'>0</div>
     </body>
 </html>
