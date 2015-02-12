@@ -9,6 +9,7 @@ app.get('/', function (req, res) {
 
 
 app.get('/update_hr', function (req, res) {
+  console.log(req.query);
   hr = parseInt(req.query.hr, 10);
   console.log(hr);
   res.send('thanks');
