@@ -1,4 +1,4 @@
-# fmh-server
+# node-pplkpr-server
 
 ### Install
 0. `npm install`
@@ -13,3 +13,4 @@
 
 #### Backend
 * http://expressjs.com
+* https://github.com/mongodb/node-mongodb-native
