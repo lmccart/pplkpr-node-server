@@ -4,36 +4,40 @@ var app = express();
 app.set('port', process.env.PORT || 3000);
 
 var server = require('http').Server(app);
-var io = require('socket.io')(server);
 server.listen(app.get('port'));
+console.log('Listening on '+app.get('port'));
 
-var hr = 0;
+var MongoClient = require('mongodb').MongoClient
+var assert = require('assert');
+var reports;
 
-
-io.on('connection', function (socket) {
-  console.log('socket connected');
-  io.emit('hr', 100);
+MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
+  assert.equal(null, err);
+  console.log("Connected correctly to mongodb");
+  reports = db.collection("reports");
 });
 
-// app.get('/', function (req, res) {
-//   res.sendfile(__dirname + '/public/index.html');
-// })
 
-//app.use(express.static('public'));
-
-
-app.get('/update_hr', function (req, res) {
+app.get('/add_report', function (req, res) {
   console.log(req.query);
-  hr = parseInt(req.query.hr, 10);
-  console.log(hr);
-  io.emit('hr', hr);
+  var r = {
+    name: req.query.name,
+    number: req.query.number,
+    emotion: req.query.emotion,
+    value: parseFloat(req.query.value),
+    timestamp: new Date().getTime()
+  }
+
+  // Insert some documents
+  reports.insert(r, function(err, result) {
+    assert.equal(err, null);
+    console.log("inserted");
+    //callback(result);
+  });
+
   res.send('thanks');
 })
 
 
 app.use(express.static(__dirname + '/public'));
 
-
-// var server = app.listen(app.get('port'), function () {
-//   console.log('Example app listening at http://%s:%s', server.address().address, server.address().port);
-// });
