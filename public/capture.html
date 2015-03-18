@@ -32,9 +32,6 @@
     function take_pic() {
       Webcam.snap( function(data_uri) {
         document.getElementById('result').innerHTML = '<img src="'+data_uri+'"/>';
-
-
-
       });
     }
 
@@ -56,7 +53,7 @@
 
       Webcam.upload( $(img).attr('src'), '/add_person', p, function(code, text) {
         if (code === 200) {
-          $('#overlay').fadeIn(100).delay(3000).fadeOut(100);
+          $('#overlay').fadeIn(100).delay(2000).fadeOut(100);
           $('#result').html('');
           $('#fname').val('');
           $('#lname').val('');
