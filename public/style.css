@@ -1,0 +1,73 @@
+body {
+  background: #FFEC00;
+  font-family: 'Karla', Helvetica, Arial !important;
+  margin: 0;
+  padding: 0;
+}
+
+.button {
+  background: black;
+  color: white;
+  padding: 10px;
+  width: 100px;
+  text-align: center;
+  cursor: pointer;
+}
+
+input {
+  margin-bottom: 10px;
+}
+
+#result {
+  background: white;
+  border: 1px dashed black;
+  width: 135px;
+  height: 240px;
+  margin-bottom: 10px;
+}
+
+#result img {
+  width: 135px;
+  height: 240px;
+}
+
+#camera {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 270px;
+  height: 480px;
+}
+
+#form {
+  position: absolute;
+  top: 10px;
+  left: 310px;
+  width: 200px;
+}
+
+#take_button {
+  position: absolute;
+  top: 420px;
+  left: 40px;
+  background: black;
+  border: 1px dashed white;
+  color: white;
+  padding: 10px;
+  cursor: pointer;
+}
+
+#overlay {
+  background: black;
+  color: white;
+  text-align: center;
+  padding-top: 500px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  font-size: 50px;
+  display: none;
+}

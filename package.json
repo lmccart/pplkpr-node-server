@@ -7,8 +7,9 @@
   },
   "author": "",
   "dependencies": {
+    "body-parser": "^1.12.2",
     "express": "^4.11.1",
-    "jade": "^1.9.2",
-    "mongodb": "^1.4.31"
+    "mongodb": "^1.4.31",
+    "multer": "^0.1.8"
   }
 }

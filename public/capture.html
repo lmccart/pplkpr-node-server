@@ -1,0 +1,94 @@
+<html>
+<head>
+  <script src='lib/jquery.js'></script>
+  <script src='lib/webcam.js'></script>
+  <link rel='stylesheet' type='text/css' href='style.css'></head>
+
+  <script language="javascript">
+
+
+    $(document).ready(function() {
+      Webcam.set({
+        width: 640,
+        height: 480,
+        dest_width: 2560,
+        dest_height: 1920,
+        crop_width: 1080,
+        crop_height: 1920,
+        image_format: 'jpeg',
+        jpeg_quality: 90,
+        force_flash: false
+      });
+      Webcam.attach( '#camera' );
+
+
+
+      $('#take_button').click(take_pic);
+
+      $('#submit').click(submit);
+
+    });
+    
+    function take_pic() {
+      Webcam.snap( function(data_uri) {
+        document.getElementById('result').innerHTML = '<img src="'+data_uri+'"/>';
+
+
+
+      });
+    }
+
+    function submit() {
+
+      var img = $('#result img')[0];
+
+      if ($('#fname').val() == '') {
+        alert('Please fill in first name.');
+      }
+      else if ($('#lname').val() == '') {
+        alert('Please fill in last name.');
+      }
+
+      var p = {
+        name: $('#fname').val()+' '+$('#lname').val(),
+        number: $('#number').val()
+      }
+
+      Webcam.upload( $(img).attr('src'), '/add_person', p, function(code, text) {
+        if (code === 200) {
+          $('#overlay').fadeIn(100).delay(3000).fadeOut(100);
+          $('#result').html('');
+          $('#fname').val('');
+          $('#lname').val('');
+          $('#number').val('');
+        } else {
+          alert('Oops, try again!');
+        }
+      });
+
+
+
+    }
+  </script>
+<body>
+
+<div id="camera"></div>
+
+
+<div id="take_button">CLICK TO TAKE PIC</div>
+
+<div id='form'>
+  <div id="result"></div>
+  <div id='fname_label'>FIRST NAME</div>
+  <input id='fname'/>
+  <div id='lname_label'>LAST NAME</div>
+  <input id='lname' />
+  <div id='lname_label'>PHONE NUMBER</div>
+  <input id='number' />
+  <div class='button' id="submit">SUBMIT</div>
+</div>
+
+<div id='overlay'>YOU'VE BEEN PPLKEPT</div>
+  
+</body>
+</html>

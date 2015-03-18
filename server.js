@@ -1,13 +1,15 @@
 
+var multer = require('multer');
 var express = require('express');
 var app = express();
 app.set('port', process.env.PORT || 3000);
-app.set('view engine', 'jade');
+app.use(express.static(__dirname + '/public'));
 
 var server = require('http').Server(app);
 server.listen(app.get('port'));
 console.log('Listening on '+app.get('port'));
 
+// CONFIG MONGO
 var MongoClient = require('mongodb').MongoClient
 var assert = require('assert');
 var reports;
@@ -17,6 +19,20 @@ MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
   console.log("Connected correctly to mongodb");
   reports = db.collection("reports");
 });
+
+// CONFIG MULTER
+var uploaded = false;
+app.use(multer({ dest: './uploads/',
+  rename: function (fieldname, filename) {
+    return filename;
+  },
+  onFileUploadStart: function (file) {
+    console.log(file.originalname + ' is starting ...')
+  },
+  onFileUploadComplete: function (file) {
+    console.log(file.fieldname + ' uploaded to  ' + file.path);
+  }
+}));
 
 
 app.get('/add_report', function (req, res) {
@@ -39,14 +55,12 @@ app.get('/add_report', function (req, res) {
   res.send('thanks');
 })
 
+app.post('/add_person',function(req,res){
+  console.log(req.body.name);
+  res.send('thanks');
+});
 
-
-app.get('/leader/:emotion', function (req, res) {
-  console.log(req.params.emotion);
-  res.render('index', { title: req.params.emotion});
-})
-
-
-
-app.use(express.static(__dirname + '/public'));
-
+app.get('/get_emotion', function (req, res) {
+  var e = req.query.emotion;
+  res.send({name: n, pic: p}); 
+});
