@@ -36,6 +36,7 @@ app.use(multer({ dest: './uploads/',
 }));
 
 
+
 app.get('/add_report', function (req, res) {
   console.log(req.query);
 
