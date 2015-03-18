@@ -2,6 +2,7 @@
 var express = require('express');
 var app = express();
 app.set('port', process.env.PORT || 3000);
+app.set('view engine', 'jade');
 
 var server = require('http').Server(app);
 server.listen(app.get('port'));
@@ -37,6 +38,14 @@ app.get('/add_report', function (req, res) {
 
   res.send('thanks');
 })
+
+
+
+app.get('/leader/:emotion', function (req, res) {
+  console.log(req.params.emotion);
+  res.render('index', { title: req.params.emotion});
+})
+
 
 
 app.use(express.static(__dirname + '/public'));
