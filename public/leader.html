@@ -1,0 +1,28 @@
+<html>
+<head>
+  <script src='lib/jquery.js'></script>
+  <link rel='stylesheet' type='text/css' href='style.css'></head>
+  <script language="javascript">
+  $(document).ready(function() {
+
+    var i = location.href.indexOf('e=');
+    var emotion = location.href.substring(i+2);
+    console.log(i, emotion)
+
+    updateLeader();
+    setInterval(updateLeader, 3000);
+
+    function updateLeader() {
+      $.getJSON('/get_leader?emotion='+emotion, function(data) {
+        console.log(data);
+        $('#photo').attr('src', '/uploads/'+data.photo);
+      });
+    }
+  });
+  </script>
+<body>
+
+<img class='leader' id='photo' />
+  
+</body>
+</html>

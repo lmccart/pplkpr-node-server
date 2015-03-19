@@ -19,11 +19,14 @@ MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
   console.log("Connected correctly to mongodb");
   reports = db.collection("reports");
   people = db.collection("people");
+
+  eval_people();
+  setInterval(eval_people, 3000);
 });
 
 // CONFIG MULTER
 var uploaded = false;
-app.use(multer({ dest: './uploads/',
+app.use(multer({ dest: './public/uploads/',
   rename: function (fieldname, filename) {
     return filename;
   },
@@ -36,27 +39,34 @@ app.use(multer({ dest: './uploads/',
 }));
 
 
+var emotions = ['Angry', 'Calm', 'Bored', 'Excited', 'Aroused', 'Anxious', 'Scared'];
+var leaders = {};
 
 app.get('/add_report', function (req, res) {
   console.log(req.query);
 
   get_person(req.query.name, req.query.number, function(id) {   
 
-    var r = {
-      person: id,
-      emotion: req.query.emotion,
-      value: parseFloat(req.query.value),
-      timestamp: new Date().getTime()
-    }
+    if (id) {
+      var r = {
+        person: id,
+        name: req.query.name,
+        number: req.query.number,
+        emotion: req.query.emotion,
+        value: parseFloat(req.query.value),
+        timestamp: new Date().getTime()
+      };
 
-    reports.insert(r, function(err, result) {
-      assert.equal(err, null);
-      console.log('inserted report');
-      //callback(result);
-    });
+      reports.insert(r, function(err, result) {
+        assert.equal(err, null);
+        console.log('inserted report');
+      });
+      res.send('successful');
+    } else {
+      res.send('person not found');
+    }
    
   });
-  res.send('thanks');
 })
 
 app.post('/add_person',function(req,res){
@@ -75,18 +85,51 @@ app.post('/add_person',function(req,res){
   res.send('thanks');
 });
 
-app.get('/get_emotion', function (req, res) {
+app.get('/get_leader', function (req, res) {
   var e = req.query.emotion;
-  res.send({name: n, pic: p}); 
+  if (leaders[e]) {
+    people.findOne({_id: leaders[e]}, function(err, doc) {
+      if (doc) res.send(doc);
+      else res.send({});
+    });
+  }
+});
+
+
+app.get('/get_leaders', function (req, res) {
+  res.send(leaders);
 });
 
 function get_person(name, num, cb) {
   // find person or kill
-  var id = 0; // pend
-  cb(id);
+  people.findOne({name: name}, function(err, doc) {
+    if (doc) cb(doc._id);
+    else cb();
+  });
 }
 
 function eval_people() {
   // for each emotion find maxs, store somehow
-}
+  emotions.forEach(function(e, ind) {
+    var scores = {};
+    var people = [];
 
+    reports.find({emotion: e}).toArray(function(err, docs) {
+      // first add up all vals and track unique people
+      for (var j=0; j<docs.length; j++) {
+        var p = docs[j].person;
+        if (!scores[p]) {
+          scores[p] = docs[j].value;
+          people.push(p);
+        } else {
+          scores[p] += docs[j].value;
+        }
+      }
+      // sort people list
+      people.sort(function(a, b) { return scores[b] > scores[a] ? 1 : -1; });
+
+      // set leader
+      leaders[e] = people.length > 0 ? people[0] : null;
+    });   
+  });
+}

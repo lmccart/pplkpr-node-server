@@ -71,3 +71,7 @@ input {
   font-size: 50px;
   display: none;
 }
+
+.leader {
+  height: 100%;
+}
