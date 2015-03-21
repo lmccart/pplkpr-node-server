@@ -1,4 +1,5 @@
 
+var latinize = require('latinize');
 var multer = require('multer');
 var express = require('express');
 var app = express();
@@ -74,6 +75,8 @@ app.post('/add_person',function(req,res){
   var p = {
     name: req.body.name,
     number: req.body.number,
+    normalized_name: normalize_name(req.body.name),
+    normalized_number: normalize_number(req.body.number),
     photo: req.body.filename
   }
 
@@ -87,7 +90,9 @@ app.post('/add_person',function(req,res){
 
 app.get('/get_leader', function (req, res) {
   var e = req.query.emotion;
+  console.log(e);
   if (leaders[e]) {
+    console.log(leaders[e]);
     people.findOne({_id: leaders[e]}, function(err, doc) {
       if (doc) res.send(doc);
       else res.send({});
@@ -108,38 +113,49 @@ app.get('/normalize', function (req, res) {
       people.save(item, function() {});
     }
   });
-  reports.find().each(function(err, item) {
-    if(item) {
-      item.normalized_name = normalize_name(item.name);
-      item.normalized_number = normalize_number(item.number);
-      reports.save(item, function() {});
-    }
-  });
   res.send('done');
 });
 
+var carefulMatch = false;
 function normalize_name(name) {
-  // remove diacritics
-  // convert to lowercase
-  // remove spaces
-  // remove vowels (?)
+  name = latinize(name); // remove diacritics
+  name = name.toLowerCase(); // convert to lowercase
+  if(!carefulMatch) name = name.replace(/\s.+\s/g, ''); // remove middle names
+  name = name.replace(/\s/g, ''); // remove remaining spaces
+  if(!carefulMatch) name = name.replace(/[aeiou]/g, ''); // remove vowels
   return name;
 }
 
 function normalize_number(number) {
-  // remove non-numbers except + and space
-  // remove international call prefix (+, 00, 011, 010, 0011) followed by country code
-  // remove all remaining non-numbers
+  if(carefulMatch) {
+    number = number.replace(/[^+\d]+/g, ' '); // replace consecutive non-numbers besides + with single spaces
+    number = number.trim(); // remove whitespace at ends
+    number = number.replace(/^(\+|00|011|010|0011)\D*\d{1,3}\s+/g, ''); // remove international call prefix (+, 00, 011, 010, 0011) followed by country code
+    number = number.replace(/\D/g, ''); // remove remaining non-numbers
+  } else {
+    number = number.replace(/\D/g, ''); // remove all non-numbers
+    number = number.slice(-7); // take the last 7 digits
+  }
   return number;
 }
 
-function get_person(name, num, cb) {
-  // first match by number
-  // if no results, match by name
-  // if no results, return cb()
-  people.findOne({name: name}, function(err, doc) {
+function get_person(name, number, cb) {
+  // first match the name
+  var normalized_name = normalize_name(name);
+  people.findOne({normalized_name: normalized_name}, function(err, doc) {
     if (doc) cb(doc._id);
-    else cb();
+    else {
+      // then match the number if it's not an empty string
+      if (number.length) {
+        var normalized_number = normalize_number(number);
+        people.findOne({normalized_number: normalized_number}, function(err, doc) {
+          if (doc) cb(doc._id);
+          else cb();
+        });
+      } else {
+        cb();
+      }
+    }
   });
 }
 
