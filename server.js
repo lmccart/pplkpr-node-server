@@ -100,8 +100,43 @@ app.get('/get_leaders', function (req, res) {
   res.send(leaders);
 });
 
+app.get('/normalize', function (req, res) {
+  people.find().each(function(err, item) {
+    if(item) {
+      item.normalized_name = normalize_name(item.name);
+      item.normalized_number = normalize_number(item.number);
+      people.save(item, function() {});
+    }
+  });
+  reports.find().each(function(err, item) {
+    if(item) {
+      item.normalized_name = normalize_name(item.name);
+      item.normalized_number = normalize_number(item.number);
+      reports.save(item, function() {});
+    }
+  });
+  res.send('done');
+});
+
+function normalize_name(name) {
+  // remove diacritics
+  // convert to lowercase
+  // remove spaces
+  // remove vowels (?)
+  return name;
+}
+
+function normalize_number(number) {
+  // remove non-numbers except + and space
+  // remove international call prefix (+, 00, 011, 010, 0011) followed by country code
+  // remove all remaining non-numbers
+  return number;
+}
+
 function get_person(name, num, cb) {
-  // find person or kill
+  // first match by number
+  // if no results, match by name
+  // if no results, return cb()
   people.findOne({name: name}, function(err, doc) {
     if (doc) cb(doc._id);
     else cb();
