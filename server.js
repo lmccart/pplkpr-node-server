@@ -1,4 +1,4 @@
-
+var AWS = require('aws-sdk'); 
 var latinize = require('latinize');
 var multer = require('multer');
 var express = require('express');
@@ -24,6 +24,11 @@ MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
   eval_people();
   setInterval(eval_people, 3000);
 });
+
+// CONFIG S3
+
+var s3 = new AWS.S3(); 
+
 
 // CONFIG MULTER
 var uploaded = false;
