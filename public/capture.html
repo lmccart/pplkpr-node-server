@@ -3,32 +3,53 @@
   <script src='lib/jquery.js'></script>
   <script src='lib/webcam.js'></script>
   <link rel='stylesheet' type='text/css' href='style.css'></head>
+  <script type="text/javascript" src="/lib/s3upload.js"></script>
 
   <script language="javascript">
 
 
     $(document).ready(function() {
       Webcam.set({
-        width: 640,
-        height: 480,
-        dest_width: 2560,
-        dest_height: 1920,
-        crop_width: 1080,
-        crop_height: 1920,
+        width: 1280,
+        height: 720,
         image_format: 'jpeg',
-        jpeg_quality: 90,
-        force_flash: false
+        jpeg_quality: 90
       });
       Webcam.attach( '#camera' );
-
-
 
       $('#take_button').click(take_pic);
 
       $('#submit').click(submit);
 
     });
-    
+
+    function s3_upload(image_data_uri, s3_object_name, cb){
+      var image_fmt = '';
+      if (image_data_uri.match(/^data\:image\/(\w+)/))
+          image_fmt = RegExp.$1;
+      else
+          throw "Cannot locate image format in Data URI";
+      var raw_image_data = image_data_uri.replace(/^data\:image\/\w+\;base64\,/, '');
+      var file = new Blob( [ Webcam.base64DecToArr(raw_image_data) ], {type: 'image/'+image_fmt} );
+      
+      var s3upload = new S3Upload({
+          file: file,
+          s3_object_name: s3_object_name,
+          s3_sign_put_url: '/sign_s3',
+          onProgress: function(percent, message) {
+              console.log('Upload progress: ' + percent + '% ' + message);
+          },
+          onFinishS3Put: function(public_url) {
+              console.log('Upload completed. Uploaded to: '+ public_url);
+              cb()
+          },
+          onError: function(status) {
+              console.log(status);
+              cb(status)
+          }
+      });
+    }
+
     function take_pic() {
       Webcam.snap( function(data_uri) {
         document.getElementById('result').innerHTML = '<img src="'+data_uri+'"/>';
@@ -41,35 +62,44 @@
 
       if ($('#fname').val() == '') {
         alert('Please fill in first name.');
+        return;
       }
       else if ($('#lname').val() == '') {
         alert('Please fill in last name.');
+        return;
       }
 
       var p = {
         name: $('#fname').val()+' '+$('#lname').val(),
-        number: $('#number').val()
+        number: $('#number').val(),
+        photo: Date.now() + '.jpg'
       }
 
-      Webcam.upload( $(img).attr('src'), '/add_person', p, function(code, text) {
-        if (code === 200) {
+      s3_upload(img.src, p.photo, function(err) {
+        if(err) {
+          alert('Problem uploading image: ' + err);
+          return;
+        }
+        $.get('/add_person', p, function(data, status) {
+          if(err) {
+            alert('Problem adding person: ' + status);
+            return;
+          }
           $('#overlay').fadeIn(100).delay(2000).fadeOut(100);
           $('#result').html('');
           $('#fname').val('');
           $('#lname').val('');
           $('#number').val('');
-        } else {
-          alert('Oops, try again!');
-        }
+        })
       });
-
-
 
     }
   </script>
 <body>
 
-<div id="camera"></div>
+<div id="camera_container">
+  <div id="camera"></div>
+</div>
 
 
 <div id="take_button">CLICK TO TAKE PIC</div>

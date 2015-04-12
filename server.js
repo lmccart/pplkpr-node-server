@@ -1,6 +1,4 @@
-var fs = require('fs');
 var latinize = require('latinize');
-var multer = require('multer');
 var aws = require('aws-sdk');
 var express = require('express');
 var app = express();
@@ -16,6 +14,9 @@ var MongoClient = require('mongodb').MongoClient
 var assert = require('assert');
 var reports, people;
 
+var emotions = ['Angry', 'Calm', 'Bored', 'Excited', 'Aroused', 'Anxious', 'Scared'];
+var leaders = {};
+
 MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
   assert.equal(null, err);
   console.log("Connected correctly to mongodb");
@@ -26,53 +27,41 @@ MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
   setInterval(eval_people, 3000);
 });
 
-// CONFIG MULTER
-var uploaded = false;
-app.use(multer({ dest: './public/uploads/',
-  rename: function (fieldname, filename) {
-    return filename;
-  },
-  onFileUploadStart: function (file) {
-    console.log(file.originalname + ' is starting ...')
-  },
-  onFileUploadComplete: function (file) {
-    console.log(file.fieldname + ' uploaded to  ' + file.path);
-    s3_upload(file.path, function(url) {
-      console.log('successfully uploaded to s3 url: ' + url);
-    })
-  }
-}));
-
 // Load the S3 information from the environment variables.
 var AWS_ACCESS_KEY = process.env.AWS_ACCESS_KEY;
 var AWS_SECRET_KEY = process.env.AWS_SECRET_KEY;
 var S3_BUCKET = process.env.S3_BUCKET
 
-function s3_upload(filename, cb) {
-  fs.readFile(filename, function (err, data) {
-    if (err) return console.log(err);
-    var params = {
-      Bucket: S3_BUCKET,
-      ContentType: 'image/jpeg', // necessary for in-browser viewing
-      Key: filename,
-      Body: data
-    };
-    aws.config.update({
-      accessKeyId: AWS_ACCESS_KEY,
-      secretAccessKey: AWS_SECRET_KEY,
-      signatureVersion: 'v4',
-      region: 'eu-central-1'
-    });
-    var s3 = new aws.S3();
-    s3.upload(params, function(err, data) {
-      if(err) console.log(err);
-      cb(data.Location);
-    });
+/*
+ * Respond to GET requests to /sign_s3.
+ * Upon request, return JSON containing the temporarily-signed S3 request and the
+ * anticipated URL of the image.
+ */
+ app.get('/sign_s3', function(req, res){
+  aws.config.update({ accessKeyId: AWS_ACCESS_KEY, secretAccessKey: AWS_SECRET_KEY});
+  aws.config.update({ signatureVersion: 'v4', region: 'eu-central-1' });
+  var s3 = new aws.S3();
+  var s3_params = { 
+    Bucket: S3_BUCKET, 
+    Key: req.query.s3_object_name, 
+    Expires: 60, 
+    ContentType: req.query.s3_object_type, 
+    ACL: 'public-read'
+  }; 
+  s3.getSignedUrl('putObject', s3_params, function(err, data){ 
+    if(err){ 
+      console.log(err); 
+    }
+    else{ 
+      var return_data = {
+        signed_request: data,
+        url: 'https://'+S3_BUCKET+'.s3.amazonaws.com/'+req.query.s3_object_name 
+      };
+      res.write(JSON.stringify(return_data));
+      res.end();
+    } 
   });
-}
-
-var emotions = ['Angry', 'Calm', 'Bored', 'Excited', 'Aroused', 'Anxious', 'Scared'];
-var leaders = {};
+});
 
 app.get('/add_report', function (req, res) {
   console.log(req.query);
@@ -101,14 +90,14 @@ app.get('/add_report', function (req, res) {
   });
 })
 
-app.post('/add_person',function(req,res){
-  console.log(req.body.name);
+app.get('/add_person',function(req,res){
+  console.log(req.query);
   var p = {
-    name: req.body.name,
-    number: req.body.number,
-    normalized_name: normalize_name(req.body.name),
-    normalized_number: normalize_number(req.body.number),
-    photo: req.body.filename
+    name: req.query.name,
+    number: req.query.number,
+    normalized_name: normalize_name(req.query.name),
+    normalized_number: normalize_number(req.query.number),
+    photo: req.query.photo
   }
 
   people.insert(p, function(err, result) {

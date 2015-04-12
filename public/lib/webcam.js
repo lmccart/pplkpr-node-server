@@ -1,36 +1,19 @@
-// WebcamJS v1.0
+// WebcamJS v1.0.2
 // Webcam library for capturing JPEG/PNG images in JavaScript
 // Attempts getUserMedia, falls back to Flash
 // Author: Joseph Huckaby: http://github.com/jhuckaby
 // Based on JPEGCam: http://code.google.com/p/jpegcam/
-// Copyright (c) 2012 Joseph Huckaby
+// Copyright (c) 2012 - 2015 Joseph Huckaby
 // Licensed under the MIT License
-
-/* Usage:
-	<div id="my_camera" style="width:320px; height:240px;"></div>
-	<div id="my_result"></div>
-	
-	<script language="JavaScript">
-		Webcam.attach( '#my_camera' );
-		
-		function take_snapshot() {
-			var data_uri = Webcam.snap();
-			document.getElementById('my_result').innerHTML = 
-				'<img src="'+data_uri+'"/>';
-		}
-	</script>
-	
-	<a href="javascript:void(take_snapshot())">Take Snapshot</a>
-*/
 
 (function(window) {
 
 var Webcam = {
-	version: '1.0.0',
+	version: '1.0.2',
 	
 	// globals
 	protocol: location.protocol.match(/https/i) ? 'https' : 'http',
-	swfURL: '', // URI to webcam.swf movie (defaults to cwd)
+	swfURL: '', // URI to webcam.swf movie (defaults to the js location)
 	loaded: false, // true when webcam movie finishes loading
 	live: false, // true when webcam is initialized and ready to snap
 	userMedia: true, // true when getUserMedia is supported natively
@@ -42,7 +25,8 @@ var Webcam = {
 		dest_height: 0, // these default to width/height
 		image_format: 'jpeg', // image format (may be jpeg or png)
 		jpeg_quality: 90, // jpeg image quality from 0 (worst) to 100 (best)
-		force_flash: false // force flash mode
+		force_flash: false, // force flash mode,
+		flip_horiz: false // flip image horiz (mirror mode)
 	},
 	
 	hooks: {
@@ -127,7 +111,12 @@ var Webcam = {
 			var self = this;
 			navigator.getUserMedia({
 				"audio": false,
-				"video": true
+				"video": {
+					mandatory: {
+						minWidth: this.params.dest_width,
+						minHeight: this.params.dest_height
+					}
+				}
 			}, 
 			function(stream) {
 				// got access, attach stream to video
@@ -137,6 +126,7 @@ var Webcam = {
 				Webcam.live = true;
 				Webcam.dispatch('load');
 				Webcam.dispatch('live');
+				Webcam.flip();
 			},
 			function(err) {
 				return self.dispatch('error', "Could not access webcam.");
@@ -144,6 +134,7 @@ var Webcam = {
 		}
 		else {
 			// flash fallback
+			window.Webcam = Webcam; // needed for flash-to-js interface
 			var div = document.createElement('div');
 			div.innerHTML = this.getSWFHTML();
 			elem.appendChild( div );
@@ -171,6 +162,9 @@ var Webcam = {
 	reset: function() {
 		// shutdown camera, reset to potentially attach again
 		if (this.preview_active) this.unfreeze();
+		
+		// attempt to fix issue #64
+		this.unflip();
 		
 		if (this.userMedia) {
 			try { this.stream.stop(); } catch (e) {;}
@@ -239,13 +233,50 @@ var Webcam = {
 		this.swfURL = url;
 	},
 	
+	detectFlash: function() {
+		// return true if browser supports flash, false otherwise
+		// Code snippet borrowed from: https://github.com/swfobject/swfobject
+		var SHOCKWAVE_FLASH = "Shockwave Flash",
+			SHOCKWAVE_FLASH_AX = "ShockwaveFlash.ShockwaveFlash",
+        	FLASH_MIME_TYPE = "application/x-shockwave-flash",
+        	win = window,
+        	nav = navigator,
+        	hasFlash = false;
+        
+        if (typeof nav.plugins !== "undefined" && typeof nav.plugins[SHOCKWAVE_FLASH] === "object") {
+        	var desc = nav.plugins[SHOCKWAVE_FLASH].description;
+        	if (desc && (typeof nav.mimeTypes !== "undefined" && nav.mimeTypes[FLASH_MIME_TYPE] && nav.mimeTypes[FLASH_MIME_TYPE].enabledPlugin)) {
+        		hasFlash = true;
+        	}
+        }
+        else if (typeof win.ActiveXObject !== "undefined") {
+        	try {
+        		var ax = new ActiveXObject(SHOCKWAVE_FLASH_AX);
+        		if (ax) {
+        			var ver = ax.GetVariable("$version");
+        			if (ver) hasFlash = true;
+        		}
+        	}
+        	catch (e) {;}
+        }
+        
+        return hasFlash;
+	},
+	
 	getSWFHTML: function() {
 		// Return HTML for embedding flash based webcam capture movie		
 		var html = '';
 		
 		// make sure we aren't running locally (flash doesn't work)
 		if (location.protocol.match(/file/)) {
-			return '<h1 style="color:red">Sorry, the Webcam.js Flash fallback does not work from local disk.  Please upload it to a web server first.</h1>';
+			this.dispatch('error', "Flash does not work from local disk.  Please run from a web server.");
+			return '<h3 style="color:red">ERROR: the Webcam.js Flash fallback does not work from local disk.  Please run it from a web server.</h3>';
+		}
+		
+		// make sure we have flash
+		if (!this.detectFlash()) {
+			this.dispatch('error', "Adobe Flash Player not found.  Please install from get.adobe.com/flashplayer and try again.");
+			return '<h3 style="color:red">ERROR: No Adobe Flash Player detected.  Webcam.js relies on Flash for browsers that do not support getUserMedia (like yours).</h3>';
 		}
 		
 		// set default swfURL if not explicitly set
@@ -304,6 +335,9 @@ var Webcam = {
 		var scaleX = this.params.width / this.params.dest_width;
 		var scaleY = this.params.height / this.params.dest_height;
 		
+		// must unflip container as preview canvas will be pre-flipped
+		this.unflip();
+		
 		// calc final size of image
 		var final_width = params.crop_width || params.dest_width;
 		var final_height = params.crop_height || params.dest_height;
@@ -358,6 +392,37 @@ var Webcam = {
 			
 			// unflag
 			this.preview_active = false;
+			
+			// re-flip if we unflipped before
+			this.flip();
+		}
+	},
+	
+	flip: function() {
+		// flip container horiz (mirror mode) if desired
+		if (this.params.flip_horiz) {
+			var sty = this.container.style;
+			sty.webkitTransform = 'scaleX(-1)';
+			sty.mozTransform = 'scaleX(-1)';
+			sty.msTransform = 'scaleX(-1)';
+			sty.oTransform = 'scaleX(-1)';
+			sty.transform = 'scaleX(-1)';
+			sty.filter = 'FlipH';
+			sty.msFilter = 'FlipH';
+		}
+	},
+	
+	unflip: function() {
+		// unflip container horiz (mirror mode) if desired
+		if (this.params.flip_horiz) {
+			var sty = this.container.style;
+			sty.webkitTransform = 'scaleX(1)';
+			sty.mozTransform = 'scaleX(1)';
+			sty.msTransform = 'scaleX(1)';
+			sty.oTransform = 'scaleX(1)';
+			sty.transform = 'scaleX(1)';
+			sty.filter = '';
+			sty.msFilter = '';
 		}
 	},
 	
@@ -390,7 +455,7 @@ var Webcam = {
 		var params = this.params;
 		
 		if (!this.loaded) return this.dispatch('error', "Webcam is not loaded yet");
-		if (!this.live) return this.dispatch('error', "Webcam is not live yet");
+		// if (!this.live) return this.dispatch('error', "Webcam is not live yet");
 		if (!user_callback) return this.dispatch('error', "Please provide a callback function or canvas to snap()");
 		
 		// if we have an active preview freeze, use that
@@ -404,6 +469,12 @@ var Webcam = {
 		canvas.width = this.params.dest_width;
 		canvas.height = this.params.dest_height;
 		var context = canvas.getContext('2d');
+		
+		// flip canvas horizontally if desired
+		if (this.params.flip_horiz) {
+			context.translate( params.dest_width, 0 );
+			context.scale( -1, 1 );
+		}
 		
 		// create inline function, called after image load (flash) or immediately (native)
 		var func = function() {
@@ -490,6 +561,7 @@ var Webcam = {
 				// camera is live and ready to snap
 				this.live = true;
 				this.dispatch('live');
+				this.flip();
 				break;
 
 			case 'error':
@@ -533,7 +605,7 @@ var Webcam = {
 		return taBytes;
 	},
 	
-	upload: function(image_data_uri, target_url, data, callback) {
+	upload: function(image_data_uri, target_url, callback) {
 		// submit image data to server using binary AJAX
 		if (callback) Webcam.on('uploadComplete', callback);
 		var form_elem_name = 'webcam';
@@ -572,13 +644,7 @@ var Webcam = {
 		
 		// stuff into a form, so servers can easily receive it as a standard file upload
 		var form = new FormData();
-		var filename = form_elem_name+Date.now()+"."+image_fmt.replace(/e/, '');
-		form.append( form_elem_name, blob,  filename);
-
-		for (var key in data) {
-			form.append(key, data[key]);
-		}
-		form.append('filename', filename);
+		form.append( form_elem_name, blob, form_elem_name+"."+image_fmt.replace(/e/, '') );
 		
 		// send data to server
 		http.send(form);

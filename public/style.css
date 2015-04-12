@@ -31,12 +31,12 @@ input {
   height: 240px;
 }
 
+#camera_container {
+
+}
+
 #camera {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 270px;
-  height: 480px;
+  
 }
 
 #form {
