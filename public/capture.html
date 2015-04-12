@@ -16,6 +16,9 @@
         jpeg_quality: 90
       });
       Webcam.attach( '#camera' );
+      var video = document.getElementsByTagName('video')[0];
+      video.style.width = '480px';
+      video.style.height = '';
 
       $('#take_button').click(take_pic);
 
@@ -97,10 +100,7 @@
   </script>
 <body>
 
-<div id="camera_container">
-  <div id="camera"></div>
-</div>
-
+<div id="camera"></div>
 
 <div id="take_button">CLICK TO TAKE PIC</div>
 

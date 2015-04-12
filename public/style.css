@@ -27,16 +27,20 @@ input {
 }
 
 #result img {
-  width: 135px;
-  height: 240px;
-}
-
-#camera_container {
-
+  transform: rotate(-90deg);
+  transform-origin: top left;
+  position: relative;
+  top: 240px;
+  width: 240px;
+  height: 135px;
 }
 
 #camera {
-  
+   position: absolute;
+   top: 490px;
+   left: 10px;
+   transform-origin: top left;
+   transform: rotate(-90deg);
 }
 
 #form {
