@@ -1,6 +1,7 @@
-
+var fs = require('fs');
 var latinize = require('latinize');
 var multer = require('multer');
+var aws = require('aws-sdk');
 var express = require('express');
 var app = express();
 app.set('port', process.env.PORT || 3000);
@@ -36,9 +37,39 @@ app.use(multer({ dest: './public/uploads/',
   },
   onFileUploadComplete: function (file) {
     console.log(file.fieldname + ' uploaded to  ' + file.path);
+    s3_upload(file.path, function(url) {
+      console.log('successfully uploaded to s3 url: ' + url);
+    })
   }
 }));
 
+// Load the S3 information from the environment variables.
+var AWS_ACCESS_KEY = process.env.AWS_ACCESS_KEY;
+var AWS_SECRET_KEY = process.env.AWS_SECRET_KEY;
+var S3_BUCKET = process.env.S3_BUCKET
+
+function s3_upload(filename, cb) {
+  fs.readFile(filename, function (err, data) {
+    if (err) return console.log(err);
+    var params = {
+      Bucket: S3_BUCKET,
+      ContentType: 'image/jpeg', // necessary for in-browser viewing
+      Key: filename,
+      Body: data
+    };
+    aws.config.update({
+      accessKeyId: AWS_ACCESS_KEY,
+      secretAccessKey: AWS_SECRET_KEY,
+      signatureVersion: 'v4',
+      region: 'eu-central-1'
+    });
+    var s3 = new aws.S3();
+    s3.upload(params, function(err, data) {
+      if(err) console.log(err);
+      cb(data.Location);
+    });
+  });
+}
 
 var emotions = ['Angry', 'Calm', 'Bored', 'Excited', 'Aroused', 'Anxious', 'Scared'];
 var leaders = {};
@@ -99,7 +130,6 @@ app.get('/get_leader', function (req, res) {
     });
   }
 });
-
 
 app.get('/get_leaders', function (req, res) {
   res.send(leaders);
