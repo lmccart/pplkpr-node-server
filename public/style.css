@@ -96,5 +96,10 @@ input {
 }
 
 .leader {
-  height: 100%;
+  transform: rotate(-90deg);
+  width: 1920px;
+  height: 1080px;
+  position: absolute;
+  top: 480px;
+  left: 0px;
 }
