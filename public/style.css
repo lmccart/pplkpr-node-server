@@ -3,62 +3,81 @@ body {
   font-family: 'Karla', Helvetica, Arial !important;
   margin: 0;
   padding: 0;
+
+  font-size: 30px;
 }
 
 .button {
   background: black;
   color: white;
-  padding: 10px;
+  padding: 20px 23px;
   width: 100px;
   text-align: center;
   cursor: pointer;
 }
 
 input {
-  margin-bottom: 10px;
+  margin: 10px 0 30px 0;
+  font-size: 30px;
+  width: 279px;
+  padding: 5px 10px;
+  font-family: 'Karla', Helvetica, Arial !important;
 }
 
-#result {
+#container {
+  width: 1000px;
+  height: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+#result, #result img {
   background: white;
-  border: 1px dashed black;
-  width: 135px;
-  height: 240px;
-  margin-bottom: 10px;
+  border: 2px dashed black;
+  width: 279px;
+  height: 496px;
+  margin-bottom: 40px;
 }
 
 #result img {
   transform: rotate(-90deg);
   transform-origin: top left;
-  position: relative;
-  top: 240px;
-  width: 240px;
-  height: 135px;
+  position: absolute;
+  height: 279px;
+  width: 496px;
+  top: 536px;
+
 }
 
 #camera {
    position: absolute;
-   top: 490px;
-   left: 10px;
+   top: 1040px;
    transform-origin: top left;
    transform: rotate(-90deg);
+   cursor: pointer;
 }
 
 #form {
-  position: absolute;
-  top: 10px;
-  left: 310px;
-  width: 200px;
+  float: right;
+  margin-top: 40px;
+  left: 600px;
+  width: 279;
 }
 
 #take_button {
   position: absolute;
-  top: 420px;
-  left: 40px;
+  bottom: 80px;
+  left: 130px;
   background: black;
-  border: 1px dashed white;
   color: white;
-  padding: 10px;
+  padding: 20px;
   cursor: pointer;
+}
+
+#submit {
+  position: absolute;
+  bottom: 40px;
+  width: 230px;
 }
 
 #overlay {

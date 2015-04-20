@@ -17,10 +17,12 @@
       });
       Webcam.attach( '#camera' );
       var video = document.getElementsByTagName('video')[0];
-      video.style.width = '480px';
-      video.style.height = '';
+      video.style.width = '1000px';
+      video.style.height = '563px';
+      // video.style.height = '';
 
       $('#take_button').click(take_pic);
+      $('#camera').click(take_pic);
 
       $('#submit').click(submit);
 
@@ -78,6 +80,7 @@
         photo: Date.now() + '.jpg'
       }
 
+      $('#overlay').fadeIn(100).delay(2000).fadeOut(100);
       s3_upload(img.src, p.photo, function(err) {
         if(err) {
           alert('Problem uploading image: ' + err);
@@ -88,7 +91,6 @@
             alert('Problem adding person: ' + status);
             return;
           }
-          $('#overlay').fadeIn(100).delay(2000).fadeOut(100);
           $('#result').html('');
           $('#fname').val('');
           $('#lname').val('');
@@ -100,19 +102,23 @@
   </script>
 <body>
 
-<div id="camera"></div>
+<div id='container'>
 
-<div id="take_button">CLICK TO TAKE PIC</div>
+  <div id="camera"></div>
 
-<div id='form'>
-  <div id="result"></div>
-  <div id='fname_label'>FIRST NAME</div>
-  <input id='fname'/>
-  <div id='lname_label'>LAST NAME</div>
-  <input id='lname' />
-  <div id='lname_label'>PHONE NUMBER</div>
-  <input id='number' />
-  <div class='button' id="submit">SUBMIT</div>
+  <div id="take_button">CLICK TO TAKE PIC</div>
+
+  <div id='form'>
+    <div id="result"></div>
+    <div id='fname_label'>FIRST NAME</div>
+    <input id='fname'/>
+    <div id='lname_label'>LAST NAME</div>
+    <input id='lname' />
+    <div id='lname_label'>PHONE NUMBER</div>
+    <input id='number' />
+    <div class='button' id="submit">SUBMIT</div>
+  </div>
+
 </div>
 
 <div id='overlay'>YOU'VE BEEN PPLKEPT</div>
