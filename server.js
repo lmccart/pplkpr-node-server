@@ -66,28 +66,40 @@ var S3_BUCKET = process.env.S3_BUCKET
 app.get('/add_report', function (req, res) {
   console.log(req.query);
 
-  get_person(req.query.name, req.query.number, function(id) {   
+  // frankfurt, uncomment when live
+  // var nw = [50.232890, 8.469555];
+  // var se = [49.988496, 8.958446];
 
-    if (id) {
-      var r = {
-        person: id,
-        name: req.query.name,
-        number: req.query.number,
-        emotion: req.query.emotion,
-        value: parseFloat(req.query.value),
-        timestamp: new Date().getTime()
-      };
+  // the whole world
+  var nw = [+90, -180];
+  var se = [-90, +180];
 
-      reports.insert(r, function(err, result) {
-        assert.equal(err, null);
-        console.log('inserted report');
-      });
-      res.send('successful');
-    } else {
-      res.send('person not found');
-    }
-   
-  });
+  if(inside([req.query.lat, req.query.lon], nw, se)) {
+    get_person(req.query.name, req.query.number, function(id) {   
+      if (id) {
+        var r = {
+          person: id,
+          lat: req.query.lat,
+          lon: req.query.lon,
+          name: req.query.name,
+          number: req.query.number,
+          emotion: req.query.emotion,
+          value: parseFloat(req.query.value),
+          timestamp: new Date().getTime()
+        };
+
+        reports.insert(r, function(err, result) {
+          assert.equal(err, null);
+          console.log('inserted report');
+        });
+        res.send('successful');
+      } else {
+        res.send('person not found');
+      }
+    })
+  } else {
+    res.send('ignoring report outside bounding box');
+  }
 })
 
 app.get('/add_person',function(req,res){
@@ -134,6 +146,11 @@ app.get('/normalize', function (req, res) {
   });
   res.send('done');
 });
+
+function inside(point, nw, se) {
+  return point[0] < nw[0] && point[0] > se[0] &&
+    point[1] > nw[1] && point[1] < se[1];
+}
 
 var carefulMatch = false;
 function normalize_name(name) {

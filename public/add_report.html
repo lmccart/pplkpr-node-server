@@ -1,0 +1,50 @@
+<html>
+<head>
+  <title>Add Report</title>
+  <style>
+  body {
+    font-family: sans-serif;
+  }
+  * {
+    margin: .25em;
+  }
+  </style>
+</head>
+<body>
+
+<form action="./add_report">
+  <label for="lat">Latitude</label>
+  <input type="number" name="lat" value="0" step="any" id="lat"><br/>
+  <label for="lon">Longitude</label>
+  <input type="number" name="lon" value="0" step="any" id="lon"><br/>
+  <label for="name">Name</label>
+  <input type="text" name="name" value="Kyle McDonald"><br/>
+  <label for="number">Number</label>
+  <input type="text" name="number" value="+1 234 567 8901"><br/>
+  <label for="emotion">Emotion</label>
+  <select>
+    <option value="excited">Excited</option>
+    <option value="aroused">Aroused</option>
+    <option value="angry">Angry</option>
+    <option value="scared">Scared</option>
+    <option value="anxious">Anxious</option>
+    <option value="bored">Bored</option>
+    <option value="calm">Calm</option>
+  </select><br/>
+  <label for="value">Value</label>
+  <input type="range" name="value" min="0" max="1" step=".01" value=".5"><br/>
+  <input type="submit" value="Submit">
+</form>
+
+<script>
+function loadGeolocation(position) {
+  if(document.getElementById('lat').value == '0') {
+    document.getElementById('lat').value = position.coords.latitude;
+    document.getElementById('lon').value = position.coords.longitude;
+  }
+}
+navigator.geolocation.getCurrentPosition(loadGeolocation);
+</script>
+
+</body>
+</html>
