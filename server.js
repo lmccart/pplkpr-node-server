@@ -122,9 +122,9 @@ app.get('/add_person',function(req,res){
 
 app.get('/get_leader', function (req, res) {
   var e = req.query.emotion;
-  console.log(e);
+  //console.log(e);
   if (leaders[e]) {
-    console.log(leaders[e]);
+    //console.log(leaders[e]);
     people.findOne({_id: leaders[e]}, function(err, doc) {
       if (doc) res.send(doc);
       else res.send({});
