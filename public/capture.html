@@ -73,6 +73,10 @@
         alert('Please fill in last name.');
         return;
       }
+      else if ($('#number').val() == '') {
+        alert('Please fill in number.');
+        return;
+      }
 
       var p = {
         name: $('#fname').val()+' '+$('#lname').val(),
