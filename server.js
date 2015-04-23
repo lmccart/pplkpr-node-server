@@ -113,7 +113,8 @@ app.get('/add_person',function(req,res){
       normalized_number: normalized_number,
       name: req.query.name,
       number: req.query.number,
-      photo: req.query.photo
+      photo: req.query.photo,
+      timestamp: new Date().getTime()
     },
     {
       upsert: true
@@ -143,6 +144,28 @@ app.get('/get_leaders', function (req, res) {
   res.send(leaders);
 });
 
+var showNumbers = false;
+app.get('/get_reports', function (req, res) {
+  var fields = {_id:0, person:1, name:1, emotion:1, value:1, lat:1, lon:1, timestamp:1};
+  if(showNumbers) {
+    fields.number = 1;
+  }
+  reports.find({}, fields).toArray(function(err, all) {
+    res.json(all);
+  });
+});
+
+app.get('/get_people', function (req, res) {
+  var fields = {name:1, normalized_name:1, photo:1, timestamp:1};
+  if(showNumbers) {
+    fields.number = 1;
+    fields.normalized_number = 1;
+  }
+  people.find({}, fields).toArray(function(err, all) {
+    res.json(all);
+  });
+});
+
 // this endpoint builds normalized names and numbers for all people.
 app.get('/normalize', function (req, res) {
   people.find().each(function(err, item) {
@@ -154,6 +177,11 @@ app.get('/normalize', function (req, res) {
   });
   res.send('done normalizing people');
 });
+
+app.get('/update_reports', function (req, res) {
+  update_reports();
+  res.send('updated');
+})
 
 function inside(point, nw, se) {
   return point[0] < nw[0] && point[0] > se[0] &&
@@ -206,21 +234,23 @@ function update_reports() {
 function get_person(name, number, cb) {
   // first try to match the name
   var normalized_name = normalize_name(name);
-  people.findOne({normalized_name: normalized_name}, function(err, doc) {
-    if (doc) cb(doc._id);
-    else {
-      // then try to match the number if it's not an empty string
-      if (number.length) {
+  if(normalized_name.length) {
+    people.findOne({normalized_name: normalized_name}, function(err, doc) {
+      if (doc) cb(doc._id);
+      else {
+        // then try to match the number if it's not an empty string
         var normalized_number = normalize_number(number);
-        people.findOne({normalized_number: normalized_number}, function(err, doc) {
-          if (doc) cb(doc._id);
-          else cb(null);
-        });
-      } else {
-        cb(null);
+        if (normalized_number.length) {
+          people.findOne({normalized_number: normalized_number}, function(err, doc) {
+            if (doc) cb(doc._id);
+            else cb(null);
+          });
+        } else {
+          cb(null);
+        }
       }
-    }
-  });
+    })
+  }
 }
 
 function eval_people() {
