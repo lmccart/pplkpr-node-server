@@ -49,8 +49,8 @@ var S3_BUCKET = process.env.S3_BUCKET
     ACL: 'public-read'
   }; 
   s3.getSignedUrl('putObject', s3_params, function(err, data){ 
-    if(err){ 
-      console.log(err); 
+    if(err) { 
+      console.log(err);
     }
     else{ 
       var return_data = {
@@ -73,20 +73,21 @@ app.get('/add_report', function (req, res) {
     lon: req.query.lon,
     name: req.query.name,
     number: req.query.number,
-    normalized_name: normalize_name(req.query.name),
-    normalized_number: normalize_number(req.query.number),
     emotion: req.query.emotion,
     value: parseFloat(req.query.value),
     timestamp: new Date().getTime(),
     ip: req.ip
   };
-  reports.insert(report,
-    function (err, result) {
-      if (err) throw err;
-      console.log('added report');
-      res.send(result);
-    }
-  );
+  get_person(req.query.name, req.query.number, function(person) {
+    report.person = person;
+    reports.insert(report,
+      function (err, result) {
+        if (err) console.log(err);
+        console.log('added report');
+        res.send(result);
+      }
+    )
+  })
 })
 
 // endpoint for testing normalize_name function
@@ -118,9 +119,10 @@ app.get('/add_person',function(req,res){
       upsert: true
     },
     function (err, result) {
-      if (err) throw err;
+      if (err) console.log(err);
       console.log('added person');
       res.sendStatus(result);
+      update_reports();
     }
   );
 });
@@ -141,16 +143,8 @@ app.get('/get_leaders', function (req, res) {
   res.send(leaders);
 });
 
-// this endpoint builds normalized names and numbers for all reports,
-// then builds normalized names and numbers for all people.
+// this endpoint builds normalized names and numbers for all people.
 app.get('/normalize', function (req, res) {
-  reports.find().each(function(err, item) {
-    if(item) {
-      item.normalized_name = normalize_name(item.name);
-      item.normalized_number = normalize_number(item.number);
-      reports.save(item, function() {});
-    }
-  });
   people.find().each(function(err, item) {
     if(item) {
       item.normalized_name = normalize_name(item.name);
@@ -158,7 +152,7 @@ app.get('/normalize', function (req, res) {
       people.save(item, function() {});
     }
   });
-  res.send('done normalizing database');
+  res.send('done normalizing people');
 });
 
 function inside(point, nw, se) {
@@ -193,14 +187,29 @@ function normalize_number(number) {
   return number;
 }
 
-// returns a document id if the person is found. otherwise, null.
+// tries to update all reports will person: null
+function update_reports() {
+  reports.find({person: null}).each(function(err, report) {
+    if(report) {
+      get_person(report.name, report.number, function(person) {
+        if(person) {
+          report.person = person;
+          reports.save(report, function() {});
+          console.log('updated report for ' + report.name + ' with ' + person)
+        }
+      })
+    }
+  });
+}
+
+// returns a document id if the person is found. otherwise, null
 function get_person(name, number, cb) {
-  // first match the name
+  // first try to match the name
   var normalized_name = normalize_name(name);
   people.findOne({normalized_name: normalized_name}, function(err, doc) {
     if (doc) cb(doc._id);
     else {
-      // then match the number if it's not an empty string
+      // then try to match the number if it's not an empty string
       if (number.length) {
         var normalized_number = normalize_number(number);
         people.findOne({normalized_number: normalized_number}, function(err, doc) {
@@ -224,11 +233,13 @@ function eval_people() {
       // first add up all vals and track unique people
       for (var j=0; j<docs.length; j++) {
         var p = docs[j].person;
-        if (!scores[p]) {
-          scores[p] = docs[j].value;
-          people.push(p);
-        } else {
-          scores[p] += docs[j].value;
+        if(p) {
+          if (!scores[p]) {
+            scores[p] = docs[j].value;
+            people.push(p);
+          } else {
+            scores[p] += docs[j].value;
+          }
         }
       }
       // sort people list
