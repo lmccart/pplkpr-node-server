@@ -2,6 +2,7 @@ var latinize = require('latinize');
 var aws = require('aws-sdk');
 var express = require('express');
 var app = express();
+app.enable('trust proxy');
 app.set('port', process.env.PORT || 3000);
 app.use(express.static(__dirname + '/public'));
 
@@ -10,18 +11,17 @@ server.listen(app.get('port'));
 console.log('Listening on '+app.get('port'));
 
 // CONFIG MONGO
-var MongoClient = require('mongodb').MongoClient
-var assert = require('assert');
+var MongoClient = require('mongodb').MongoClient;
 var reports, people;
 
 var emotions = ['Angry', 'Calm', 'Bored', 'Excited', 'Aroused', 'Anxious', 'Scared'];
 var leaders = {};
 
 MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
-  assert.equal(null, err);
-  console.log("Connected correctly to mongodb");
-  reports = db.collection("reports");
-  people = db.collection("people");
+  if (err) throw err;
+  console.log('Connected correctly to mongodb');
+  reports = db.collection('reports');
+  people = db.collection('people');
 
   eval_people();
   setInterval(eval_people, 3000);
@@ -64,71 +64,76 @@ var S3_BUCKET = process.env.S3_BUCKET
 });
 
 app.get('/add_report', function (req, res) {
-  console.log(req.query);
-
-  // frankfurt, uncomment when live
-  // var nw = [50.232890, 8.469555];
-  // var se = [49.988496, 8.958446];
-
-  // the whole world
-  var nw = [+90, -180];
-  var se = [-90, +180];
-
-  if(inside([req.query.lat, req.query.lon], nw, se)) {
-    get_person(req.query.name, req.query.number, function(id) {   
-      if (id) {
-        var r = {
-          person: id,
-          lat: req.query.lat,
-          lon: req.query.lon,
-          name: req.query.name,
-          number: req.query.number,
-          emotion: req.query.emotion,
-          value: parseFloat(req.query.value),
-          timestamp: new Date().getTime()
-        };
-
-        reports.insert(r, function(err, result) {
-          assert.equal(err, null);
-          console.log('inserted report');
-        });
-        res.send('successful');
-      } else {
-        res.send('person not found');
-      }
-    })
-  } else {
-    res.send('ignoring report outside bounding box');
-  }
-})
-
-app.get('/add_person',function(req,res){
-  console.log(req.query);
-  var p = {
+  // frankfurt
+  var nw = [50.232890, 8.469555];
+  var se = [49.988496, 8.958446];
+  var report = {
+    inside: inside([req.query.lat, req.query.lon], nw, se),
+    lat: req.query.lat,
+    lon: req.query.lon,
     name: req.query.name,
     number: req.query.number,
     normalized_name: normalize_name(req.query.name),
     normalized_number: normalize_number(req.query.number),
-    photo: req.query.photo
-  }
+    emotion: req.query.emotion,
+    value: parseFloat(req.query.value),
+    timestamp: new Date().getTime(),
+    ip: req.ip
+  };
+  reports.insert(report,
+    function (err, result) {
+      if (err) throw err;
+      console.log('added report');
+      res.send(result);
+    }
+  );
+})
 
-  people.insert(p, function(err, result) {
-    assert.equal(err, null);
-    console.log('inserted person');
-    //callback(result);
-  });
-  res.send('thanks');
+// endpoint for testing normalize_name function
+app.get('/normalize_name', function(req,res){
+  res.send(normalize_name(req.query.name));
+})
+
+// endpoint for testing normalize_number function
+app.get('/normalize_number', function(req,res){
+  res.send(normalize_number(req.query.number));
+})
+
+app.get('/add_person',function(req,res){
+  var normalized_name = normalize_name(req.query.name);
+  var normalized_number = normalize_number(req.query.number);
+  var result = people.update(
+    {
+      normalized_name: normalized_name,
+      normalized_number: normalized_number
+    },
+    {
+      normalized_name: normalized_name,
+      normalized_number: normalized_number,
+      name: req.query.name,
+      number: req.query.number,
+      photo: req.query.photo
+    },
+    {
+      upsert: true
+    },
+    function (err, result) {
+      if (err) throw err;
+      console.log('added person');
+      res.sendStatus(result);
+    }
+  );
 });
 
 app.get('/get_leader', function (req, res) {
   var e = req.query.emotion;
-  //console.log(e);
   if (leaders[e]) {
-    //console.log(leaders[e]);
     people.findOne({_id: leaders[e]}, function(err, doc) {
       if (doc) res.send(doc);
       else res.send({});
     });
+  } else {
+    res.send({});
   }
 });
 
@@ -136,7 +141,16 @@ app.get('/get_leaders', function (req, res) {
   res.send(leaders);
 });
 
+// this endpoint builds normalized names and numbers for all reports,
+// then builds normalized names and numbers for all people.
 app.get('/normalize', function (req, res) {
+  reports.find().each(function(err, item) {
+    if(item) {
+      item.normalized_name = normalize_name(item.name);
+      item.normalized_number = normalize_number(item.number);
+      reports.save(item, function() {});
+    }
+  });
   people.find().each(function(err, item) {
     if(item) {
       item.normalized_name = normalize_name(item.name);
@@ -144,7 +158,7 @@ app.get('/normalize', function (req, res) {
       people.save(item, function() {});
     }
   });
-  res.send('done');
+  res.send('done normalizing database');
 });
 
 function inside(point, nw, se) {
@@ -152,8 +166,11 @@ function inside(point, nw, se) {
     point[1] > nw[1] && point[1] < se[1];
 }
 
+// if we are matching people that are actually different people,
+// set this flag to 'true' and then hit the /normalize endpoint
 var carefulMatch = false;
 function normalize_name(name) {
+  if(!name) return '';
   name = latinize(name); // remove diacritics
   name = name.toLowerCase(); // convert to lowercase
   if(!carefulMatch) name = name.replace(/\s.+\s/g, ''); // remove middle names
@@ -163,6 +180,7 @@ function normalize_name(name) {
 }
 
 function normalize_number(number) {
+  if(!number) return '';
   if(carefulMatch) {
     number = number.replace(/[^+\d]+/g, ' '); // replace consecutive non-numbers besides + with single spaces
     number = number.trim(); // remove whitespace at ends
@@ -175,6 +193,7 @@ function normalize_number(number) {
   return number;
 }
 
+// returns a document id if the person is found. otherwise, null.
 function get_person(name, number, cb) {
   // first match the name
   var normalized_name = normalize_name(name);
@@ -186,10 +205,10 @@ function get_person(name, number, cb) {
         var normalized_number = normalize_number(number);
         people.findOne({normalized_number: normalized_number}, function(err, doc) {
           if (doc) cb(doc._id);
-          else cb();
+          else cb(null);
         });
       } else {
-        cb();
+        cb(null);
       }
     }
   });
