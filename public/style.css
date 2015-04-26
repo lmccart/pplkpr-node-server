@@ -31,9 +31,12 @@ input {
   position: relative;
 }
 
+#result {
+  border: 2px dashed black;
+}
+
 #result, #result img {
   background: white;
-  border: 2px dashed black;
   width: 279px;
   height: 496px;
   margin-bottom: 40px;
