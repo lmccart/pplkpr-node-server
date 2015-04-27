@@ -17,6 +17,16 @@ var reports, people;
 var emotions = ['Angry', 'Calm', 'Bored', 'Excited', 'Aroused', 'Anxious', 'Scared'];
 var leaders = {};
 
+// these fields should be used when looking up data to return to endpoints
+var showNumbers = false;
+var reportFields = {_id:0, person:1, name:1, emotion:1, value:1, lat:1, lon:1, timestamp:1};
+var peopleFields = {name:1, normalized_name:1, photo:1, timestamp:1};
+if(showNumbers) {
+  reportFields.number = 1;
+  peopleFields.number = 1;
+  peopleFields.normalized_number = 1;
+}
+
 MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
   if (err) throw err;
   console.log('Connected correctly to mongodb');
@@ -131,7 +141,7 @@ app.get('/add_person',function(req,res){
 app.get('/get_leader', function (req, res) {
   var e = req.query.emotion;
   if (leaders[e]) {
-    people.findOne({_id: leaders[e]}, function(err, doc) {
+    people.findOne({_id: leaders[e]}, peopleFields, function(err, doc) {
       if (doc) res.send(doc);
       else res.send({});
     });
@@ -144,9 +154,7 @@ app.get('/get_leaders', function (req, res) {
   res.send(leaders);
 });
 
-var showNumbers = false;
 app.get('/get_reports', function (req, res) {
-  var fields = {_id:0, person:1, name:1, emotion:1, value:1, lat:1, lon:1, timestamp:1};
   if(showNumbers) {
     fields.number = 1;
   }
@@ -156,12 +164,7 @@ app.get('/get_reports', function (req, res) {
 });
 
 app.get('/get_people', function (req, res) {
-  var fields = {name:1, normalized_name:1, photo:1, timestamp:1};
-  if(showNumbers) {
-    fields.number = 1;
-    fields.normalized_number = 1;
-  }
-  people.find({}, fields).toArray(function(err, all) {
+  people.find({}, peopleFields).toArray(function(err, all) {
     res.json(all);
   });
 });
