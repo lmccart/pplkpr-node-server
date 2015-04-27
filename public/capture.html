@@ -25,6 +25,12 @@
       $('#camera').click(take_pic);
 
       $('#submit').click(submit);
+      $('#submit').click(submit);
+      $(document).keypress(function(e) {
+        if(e.which == 13) {
+          submit();
+        }
+      });
 
     });
 
