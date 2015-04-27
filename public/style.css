@@ -106,4 +106,15 @@ input {
   position: absolute;
   top: 420px;
   left: -420px;
+  z-index: -1;
+}
+
+#label {
+  padding: 25px 50px;
+  color: black;
+  background: white;
+  font-size: 120px;
+  position: absolute;
+  left: 0;
+  bottom: 50px;
 }

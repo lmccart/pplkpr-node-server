@@ -1,0 +1,32 @@
+<html>
+<head>
+  <script src='lib/jquery.js'></script>
+  <link rel='stylesheet' type='text/css' href='style.css'></head>
+  <script language="javascript">
+  $(document).ready(function() {
+
+    var emotions = ['Excited', 'Scared', 'Anxious', 'Calm', 'Bored', 'Aroused'];
+    var ind = 0;
+
+    updateLeader();
+    setInterval(updateLeader, 30000);
+
+    function updateLeader(emotion) {
+      ind = (ind+1)%emotions.length;
+
+      $.getJSON('/get_leader?emotion='+emotions[ind], function(data) {
+        console.log(data);
+        $('#emotion').text(emotions[ind].toUpperCase());
+        $('#photo').attr('src', 'https://s3.eu-central-1.amazonaws.com/pplkpr-node/'+data.photo);
+        //$('#photo').attr('src', 'me.jpg');
+      });
+    }
+  });
+  </script>
+<body>
+
+<div id='label'>Makes us feel<br>MOST <span id='emotion'></span></div>
+<img class='leader' id='photo' />
+  
+</body>
+</html>
