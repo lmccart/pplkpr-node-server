@@ -30,10 +30,19 @@ input {
 }
 
 #container {
-  width: 1000px;
+  width: 1600px;
   height: 100%;
   margin: 0 auto;
   position: relative;
+}
+
+#info {
+  width: 580px;
+  height: 100%;
+  position: absolute;
+  top: 40px;
+  left: 0;
+  font-size: 55px;
 }
 
 #result {
@@ -60,6 +69,7 @@ input {
 #camera {
    position: absolute;
    top: 1040px;
+   left: 670px;
    transform-origin: top left;
    transform: rotate(-90deg);
    cursor: pointer;
@@ -75,7 +85,7 @@ input {
 #take_button {
   position: absolute;
   bottom: 80px;
-  left: 130px;
+  left: 800px;
   background: black;
   color: white;
   padding: 20px;
