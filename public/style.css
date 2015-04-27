@@ -110,7 +110,7 @@ input {
   height: 100%;
   z-index: 3;
   font-size: 50px;
-  display: none;
+/*  display: none;*/
 }
 
 .leader {
