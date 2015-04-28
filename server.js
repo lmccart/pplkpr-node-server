@@ -35,6 +35,10 @@ MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
 
   eval_people();
   setInterval(eval_people, 3000);
+
+  randomReport();  
+  setInterval(randomReport, 30*1000);
+
 });
 
 // Load the S3 information from the environment variables.
@@ -74,30 +78,8 @@ var S3_BUCKET = process.env.S3_BUCKET
 });
 
 app.get('/add_report', function (req, res) {
-  // frankfurt
-  var nw = [50.232890, 8.469555];
-  var se = [49.988496, 8.958446];
-  var report = {
-    inside: inside([req.query.lat, req.query.lon], nw, se),
-    lat: req.query.lat,
-    lon: req.query.lon,
-    name: req.query.name,
-    number: req.query.number,
-    emotion: req.query.emotion,
-    value: parseFloat(req.query.value),
-    timestamp: new Date().getTime(),
-    ip: req.ip
-  };
-  get_person(req.query.name, req.query.number, function(person) {
-    report.person = person;
-    reports.insert(report,
-      function (err, result) {
-        if (err) console.log(err);
-        console.log('added report');
-        res.send(result);
-      }
-    )
-  })
+  addReport(req.query.name, req.query.number, req.query.lat, 
+    req.query.lon, req.query.emotion, parseFloat(req.query.value), req.ip, res);
 })
 
 // endpoint for testing normalize_name function
@@ -158,7 +140,7 @@ app.get('/get_reports', function (req, res) {
   if(showNumbers) {
     fields.number = 1;
   }
-  reports.find({}, fields).toArray(function(err, all) {
+  reports.find({}, reportFields).toArray(function(err, all) {
     res.json(all);
   });
 });
@@ -264,22 +246,76 @@ function eval_people() {
 
     reports.find({emotion: e}).toArray(function(err, docs) {
       // first add up all vals and track unique people
-      for (var j=0; j<docs.length; j++) {
-        var p = docs[j].person;
-        if(p) {
-          if (!scores[p]) {
-            scores[p] = docs[j].value;
-            people.push(p);
-          } else {
-            scores[p] += docs[j].value;
+      if (docs) {
+        for (var j=0; j<docs.length; j++) {
+          var p = docs[j].person;
+          if(p) {
+            if (!scores[p]) {
+              scores[p] = docs[j].value;
+              people.push(p);
+            } else {
+              scores[p] += docs[j].value;
+            }
           }
         }
-      }
-      // sort people list
-      people.sort(function(a, b) { return scores[b] > scores[a] ? 1 : -1; });
+        // sort people list
+        people.sort(function(a, b) { return scores[b] > scores[a] ? 1 : -1; });
 
-      // set leader
-      leaders[e] = people.length > 0 ? people[0] : null;
+        // set leader
+        leaders[e] = people.length > 0 ? people[0] : null;
+      }
     });   
   });
 }
+
+function addReport(lat, lon, emotion, value, name, number, ip, res, person) {
+    // frankfurt
+  var nw = [50.232890, 8.469555];
+  var se = [49.988496, 8.958446];
+  var report = {
+    inside: inside([lat, lon], nw, se),
+    lat: lat,
+    lon: lon,
+    name: name,
+    number: number,
+    emotion: emotion,
+    value: value,
+    timestamp: new Date().getTime(),
+    ip: ip
+  };
+  if (person) {
+    report.person = person._id;
+    report.fake = true;
+    reports.insert(report,
+      function (err, result) {
+        if (err) console.log(err);
+        console.log('added report');
+      }
+    );
+  } else { // lookup person   
+    get_person(name, number, function(person) {
+      report.person = person;
+      reports.insert(report,
+        function (err, result) {
+          if (err) console.log(err);
+          console.log('added report');
+          if (res) res.send(result);
+        }
+      )
+    });
+  }
+}
+
+
+function randomReport() {
+  people.find({}).toArray(function(err, docs) {
+    if (docs) {
+      var p = docs[Math.floor(Math.random() * docs.length)];
+      var e = emotions[Math.floor(Math.random() * emotions.length)];
+      addReport(50.0, 8.7, e, Math.random(), p.name, p.number, '94.79.166.138', null, p);
+    }
+  });
+}
+
+
+
