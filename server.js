@@ -37,8 +37,8 @@ MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
   setInterval(eval_people, 3000);
 
   randomReport();  
-  setInterval(randomReport, 60*1000);
-  
+  setInterval(randomReport, 300*1000);
+
 });
 
 // Load the S3 information from the environment variables.
@@ -298,7 +298,7 @@ function addReport(name, number, lat, lon, emotion, value, ip, res, person) {
       reports.insert(report,
         function (err, result) {
           if (err) console.log(err);
-          console.log('added report');
+          console.log('added report '+name);
           if (res) res.send(result);
         }
       )
