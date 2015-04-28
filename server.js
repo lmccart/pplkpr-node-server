@@ -268,7 +268,7 @@ function eval_people() {
   });
 }
 
-function addReport(lat, lon, emotion, value, name, number, ip, res, person) {
+function addReport(name, number, lat, lon, emotion, value, ip, res, person) {
     // frankfurt
   var nw = [50.232890, 8.469555];
   var se = [49.988496, 8.958446];
@@ -312,7 +312,7 @@ function randomReport() {
     if (docs) {
       var p = docs[Math.floor(Math.random() * docs.length)];
       var e = emotions[Math.floor(Math.random() * emotions.length)];
-      addReport(50.0, 8.7, e, Math.random(), p.name, p.number, '94.79.166.138', null, p);
+      addReport(p.name, p.number, 50.0, 8.7, e, Math.random(), '94.79.166.138', null, p);
     }
   });
 }
