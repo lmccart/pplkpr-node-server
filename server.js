@@ -37,7 +37,7 @@ MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
   setInterval(eval_people, 3000);
 
   randomReport();  
-  setInterval(randomReport, 30*1000);
+  setInterval(randomReport, 60*1000);
 
 });
 
