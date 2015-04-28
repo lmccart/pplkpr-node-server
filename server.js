@@ -269,6 +269,7 @@ function eval_people() {
 }
 
 function addReport(name, number, lat, lon, emotion, value, ip, res, person) {
+  console.log('trying to add report '+name)
     // frankfurt
   var nw = [50.232890, 8.469555];
   var se = [49.988496, 8.958446];
@@ -289,7 +290,7 @@ function addReport(name, number, lat, lon, emotion, value, ip, res, person) {
     reports.insert(report,
       function (err, result) {
         if (err) console.log(err);
-        console.log('added report');
+        console.log('added report '+name);
       }
     );
   } else { // lookup person   
