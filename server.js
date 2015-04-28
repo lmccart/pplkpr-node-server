@@ -38,7 +38,6 @@ MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
 
   randomReport();  
   setInterval(randomReport, 60*1000);
-
 });
 
 // Load the S3 information from the environment variables.
